@@ -32,3 +32,33 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
           publish_branch: gh-pages
+name: 每日更新股价
+
+on:
+  schedule:
+    - cron: '30 7 * * 1-5'   # 北京时间 15:30（A股收盘后），周一到周五
+  workflow_dispatch:           # 也可以手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install requests yfinance
+
+      - name: 运行脚本生成 HTML
+        run: python fetch_and_build.py
+
+      - name: 推送更新到 GitHub
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add index.html output.html
+          git commit -m "自动更新股价 $(date '+%Y-%m-%d')" || echo "无变化"
+          git push
